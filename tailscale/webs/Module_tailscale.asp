@@ -24,6 +24,7 @@
 <script type="text/javascript" src="/js/table/table.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script type="text/javascript" src="/res/softcenter.js"></script>
+<script type="text/javascript" src="/res/tailscale_auth.js?v=1.80.3.1"></script>
 <script type="text/javascript" src="/help.js"></script>
 <style>
 a:focus {
@@ -247,6 +248,7 @@ function get_dbus_data(){
 			dbus = data.result[0];
 			conf2obj();
 			register_event();
+			tailscaleAuthRefresh();
 			if(dbus["tailscale_enable"] == "1"){
 				get_proces_status();
 				get_tcnets_status();
@@ -331,7 +333,7 @@ function get_proces_status() {
 			if(response.result){
 				var arr = response.result.split("@@");
 				E("tailscale_status").innerHTML = arr[0];
-				E("tailnet_state").innerHTML = arr[1];
+				// Login state comes directly from tailscaled LocalAPI.
 			}
 			setTimeout("get_proces_status();", 5000);
 		},
@@ -732,6 +734,19 @@ function mOut(obj){
 														<span style="margin-left:4px" id="tailnet_state"></span>
 													</td>
 												</tr>
+                                                <tr>
+                                                    <th>账号登录</th>
+                                                    <td>
+                                                        <input type="button" class="button_gen" id="tailscale_auth_login" value="登录账号" onclick="tailscaleAuthRequest('login');" />
+                                                        <input type="button" class="button_gen" id="tailscale_auth_refresh" value="刷新状态" onclick="tailscaleAuthRefresh();" />
+                                                        <div id="tailscale_auth_url_box" style="display:none;margin-top:10px;">
+                                                            <a id="tailscale_auth_link" class="ks_btn" target="_blank" rel="noopener noreferrer">打开授权链接</a>
+                                                            <input id="tailscale_auth_url" type="text" readonly="readonly" onclick="this.select();" style="display:block;width:95%;margin-top:8px;" aria-label="Tailscale 授权链接" />
+                                                        </div>
+                                                        <div style="margin-top:8px;">打开授权链接，登录与其他设备相同的账号。状态每 5 秒刷新。</div>
+                                                        <div id="tailscale_auth_detail" style="white-space:pre-wrap;word-break:break-all;color:#FC0;margin-top:8px;"></div>
+                                                    </td>
+                                                </tr>
 												<tr id="tailscale_console_tr">
 													<th>tailscale 控制台</th>
 													<td>

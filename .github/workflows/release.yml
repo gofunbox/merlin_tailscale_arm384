@@ -1,0 +1,66 @@
+name: Build and release
+
+on:
+  pull_request:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag (for example v1.80.3.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
+      - name: Check shell and login behavior
+        run: |
+          for script in build.sh tailscale/install.sh tailscale/uninstall.sh tailscale/scripts/*.sh; do
+            sh -n "$script"
+          done
+          python3 -m unittest discover -s tests -p 'test_*.py' -v
+          node tests/test_auth_ui.js
+      - name: Build small installer
+        run: ./build.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tailscale-installer
+          path: dist/*
+
+  release:
+    if: github.event_name != 'pull_request'
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
+      - name: Verify tag matches plugin version
+        run: test "$RELEASE_TAG" = "v$(cat tailscale/version)"
+      - name: Build both installers and checksums
+        run: |
+          ./build.sh
+          ./build.sh --full
+          cd dist
+          sha256sum tailscale.tar.gz tailscale-full.tar.gz version config.json.js > SHA256SUMS
+      - name: Publish release assets
+        run: |
+          gh release create "$RELEASE_TAG" dist/tailscale.tar.gz dist/tailscale-full.tar.gz dist/version dist/config.json.js dist/SHA256SUMS \
+            --verify-tag --draft --title "Tailscale plugin $RELEASE_TAG" --generate-notes
+          gh release edit "$RELEASE_TAG" --draft=false
