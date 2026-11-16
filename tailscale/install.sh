@@ -7,6 +7,9 @@ FW_TYPE_CODE=
 FW_TYPE_NAME=
 DIR=$(cd $(dirname $0); pwd)
 module=${DIR##*/}
+DOWNLOAD_DIR=
+BIN_DIR=
+trap '[ -z "$DOWNLOAD_DIR" ] || rm -rf "$DOWNLOAD_DIR"' EXIT
 
 get_model(){
 	local ODMPID=$(nvram get odmpid)
@@ -119,11 +122,36 @@ install_ui(){
 	fi
 }
 
+prepare_binaries(){
+	local CLIENT_VERSION=$(cat "${DIR}/tailscale.version")
+	if [ -s "${DIR}/bin/tailscale" ] && [ -s "${DIR}/bin/tailscaled" ];then
+		BIN_DIR="${DIR}/bin"
+		echo_date "使用完整离线包中附带的 Tailscale ${CLIENT_VERSION} 程序。"
+	else
+		echo_date "当前是小体积安装包，开始下载官方程序；下载完成前不会停止现有插件。"
+		DOWNLOAD_DIR=$(mktemp -d /tmp/tailscale-download.XXXXXX) || exit 1
+		BIN_DIR="$DOWNLOAD_DIR"
+		if ! sh "${DIR}/scripts/tailscale_download.sh" "$CLIENT_VERSION" "$BIN_DIR";then
+			echo_date "下载失败，现有插件保持不变。请检查路由器 DNS/时间/网络，或使用 Release 的 tailscale-full.tar.gz。"
+			exit 1
+		fi
+	fi
+	chmod 755 "$BIN_DIR/tailscale" "$BIN_DIR/tailscaled"
+	local CLI_VERSION=$("$BIN_DIR/tailscale" version 2>/dev/null | sed -n '1p')
+	local DAEMON_VERSION=$("$BIN_DIR/tailscaled" --version 2>/dev/null | sed -n '1p')
+	if [ "$CLI_VERSION" != "$CLIENT_VERSION" ] || [ "$DAEMON_VERSION" != "$CLIENT_VERSION" ];then
+		echo_date "程序版本不符或无法在本机运行，取消安装；现有插件保持不变。"
+		exit 1
+	fi
+}
+
 install_now(){
 	# default value
 	local TITLE="Tailscale"
 	local DESCR="基于wiregurad协议的零配置内网穿透安全组网工具！"
 	local PLVER=$(cat ${DIR}/version)
+	# Download and execute version probes BEFORE stopping or removing old files.
+	prepare_binaries
 
 	# stop before install
 	if [ "$(dbus get tailscale_enable)" == "1" -a -f "/koolshare/scripts/tailscale_config" ];then
@@ -143,7 +171,7 @@ install_now(){
 	# isntall file
 	echo_date "安装插件相关文件..."
 	cd /tmp
-	cp -rf /tmp/${module}/bin/* /koolshare/bin/
+	cp -f "$BIN_DIR/tailscale" "$BIN_DIR/tailscaled" /koolshare/bin/
 	cp -rf /tmp/${module}/init.d/* /koolshare/init.d/
 	cp -rf /tmp/${module}/res/* /koolshare/res/
 	cp -rf /tmp/${module}/scripts/* /koolshare/scripts/

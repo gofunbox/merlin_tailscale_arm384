@@ -1,1 +1,10 @@
 shell
+# Release assets and downloaded runtime files must never enter Git history.
+/dist/
+/.build.*/
+/tailscale/bin/
+/tailscale.tar.gz
+/tailscale-full.tar.gz
+/version
+/config.json.js
+__pycache__/

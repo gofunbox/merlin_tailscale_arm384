@@ -24,7 +24,7 @@
 <script type="text/javascript" src="/js/table/table.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script type="text/javascript" src="/res/softcenter.js"></script>
-<script type="text/javascript" src="/res/tailscale_auth.js?v=1.80.3-login1"></script>
+<script type="text/javascript" src="/res/tailscale_auth.js?v=1.80.3.1"></script>
 <script type="text/javascript" src="/help.js"></script>
 <style>
 a:focus {
@@ -333,7 +333,7 @@ function get_proces_status() {
 			if(response.result){
 				var arr = response.result.split("@@");
 				E("tailscale_status").innerHTML = arr[0];
-				// Login status is read directly from tailscaled by tailscale_auth.sh.
+				// Login state comes directly from tailscaled LocalAPI.
 			}
 			setTimeout("get_proces_status();", 5000);
 		},
@@ -743,7 +743,7 @@ function mOut(obj){
                                                             <a id="tailscale_auth_link" class="ks_btn" target="_blank" rel="noopener noreferrer">打开授权链接</a>
                                                             <input id="tailscale_auth_url" type="text" readonly="readonly" onclick="this.select();" style="display:block;width:95%;margin-top:8px;" aria-label="Tailscale 授权链接" />
                                                         </div>
-                                                        <div style="margin-top:8px;">打开授权链接后，登录与其他设备相同的 Tailscale 账号。此页面会自动刷新状态。</div>
+                                                        <div style="margin-top:8px;">打开授权链接，登录与其他设备相同的账号。状态每 5 秒刷新。</div>
                                                         <div id="tailscale_auth_detail" style="white-space:pre-wrap;word-break:break-all;color:#FC0;margin-top:8px;"></div>
                                                     </td>
                                                 </tr>

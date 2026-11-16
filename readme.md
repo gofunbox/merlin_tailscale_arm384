@@ -1,58 +1,76 @@
 # merlin_tailscale_arm384
 
-## 是什么？
+适用于 AC68U 等带软件中心的 Koolshare 改版梅林 384/386 固件。
 
-ks的改版梅林设备上面运行的tailscale的包。
+## 下载和安装
 
-## 支持机型
+到 [GitHub Releases](https://github.com/gofunbox/merlin_tailscale_arm384/releases/latest) 下载附件，软件中心选择“离线安装”：
 
-以ac68u为例的ks改版梅林固件路由器。384/386版本
+| 附件 | 用途 |
+| --- | --- |
+| `tailscale.tar.gz` | 推荐。小安装包只含插件网页、脚本等，安装时从 Tailscale 官方下载程序。 |
+| `tailscale-full.tar.gz` | 完整离线包。包含官方程序，用于路由器无法访问官方下载站的情况。 |
+| `SHA256SUMS` | 核对下载的附件是否完整。 |
+| `version`、`config.json.js` | 小安装包的版本和 MD5 元数据。 |
 
-## 为什么停在 1.80.3
+不要下载 GitHub 自动生成的 `Source code` 压缩包来安装。
 
-AC68U 这类机型的梅林 384/386 固件内核是 Linux 2.6.36。
+小包安装会下载固定的 `https://pkgs.tailscale.com/stable/tailscale_1.80.3_arm.tgz`。下载、解压、检查架构、在路由器上执行版本检查均通过后，才停止并替换旧插件；下载失败或程序不能运行时保留现有插件。需要路由器自身能访问官方站点，下载仍约 26MB，只是不再随源码推送和手动上传插件包。安装后的程序仍约占 47MB，检查 `/jffs` 和 `/tmp` 空间。
 
-- Tailscale 1.80.3 用 Go 1.23 构建，Go 1.23 支持 Linux 2.6.32+。
-- Tailscale 1.82.0 起改用 Go 1.24，Go 1.24 要求 Linux 3.2+。
+## 登录
 
-因此将 1.80.3 固定为旧内核的兼容候选版本，不跟随上游自动升级。这是根据工具链要求做出的选择，不是 Tailscale 官方对 AC68U 的支持声明；ARM 构建、启动、联网和路由能力仍需实机验证。依据：[1.80.3 工具链](https://github.com/tailscale/tailscale/blob/v1.80.3/go.toolchain.branch)、[1.82.0 go.mod](https://github.com/tailscale/tailscale/blob/v1.82.0/go.mod)、[Go 内核要求](https://go.dev/doc/go1.23#linux)。
+安装后强制刷新插件页面，打开开关，点击“登录账号”，再点击“打开授权链接”。登录与其他设备相同的 Tailscale 账号；页面每 5 秒刷新状态。如果需要管理员批准，到 `Admin console` 批准设备。
 
-## 登录使用
+登录接口通过本机 Unix socket 读取真实状态，保留已有账号、路由和 DNS 设置，不增加监听端口。需要路由器 `curl` 支持 `--unix-socket`。连接错误会显示在登录区域，也可查看“tailscaled运行日志”。后台账号登录和官方安装包下载是两个不同的连接步骤。
 
-1. 在软件中心离线安装本项目生成的 `tailscale.tar.gz`，重新打开插件页面；若仍是旧页面，请强制刷新浏览器。
-2. 打开插件开关，等待 `tailscaled` 启动。
-3. 点击“登录账号”。页面会显示“打开授权链接”，也可选中下方输入框复制链接。
-4. 在浏览器打开链接，登录与手机、电脑或群晖相同的 Tailscale 账号，完成设备授权。
-5. 页面每 5 秒刷新一次状态。若需要管理员批准，到 `Admin console` 中批准设备。
+## 版本范围
 
-`Admin console` 是管理后台入口，直接打开它不会绑定当前路由器。登录按钮使用现有守护进程的本地 Unix socket，不增加监听端口；只启用运行状态并请求授权，保留现有账号配置、DNS、路由和防火墙设置，已登录时不会重新认证。
+插件版本在 `tailscale/version`，当前为 `1.80.3.1`；实际 Tailscale 客户端版本单独固定在 `tailscale/tailscale.version`，为 `1.80.3`。
 
-登录功能要求路由器上的 `curl` 支持 `--unix-socket`。未启动、本地接口错误和 Tailscale 自报的健康问题会显示在登录区域。若一直取不到授权链接，检查页面顶部的“tailscaled运行日志”，排查路由器自身的 DNS、时间和连接问题；更换版本不一定能解决网络故障。
+1.80.3 的上游工具链为 Go 1.23；1.82.0 起要求 Go 1.24，而 Go 1.24 要求 Linux 3.2+。因此为 AC68U 的 Linux 2.6.36 选择 1.80.3 作为兼容候选，不代表上游保证 AC68U 可用；仍需实机验证。
+
+依据：[1.80.3 工具链](https://github.com/tailscale/tailscale/blob/v1.80.3/go.toolchain.branch)、[1.82.0 Go 要求](https://github.com/tailscale/tailscale/blob/v1.82.0/go.mod)、[Go Linux 内核要求](https://go.dev/doc/go1.23#linux)。
 
 ## 构建
 
 ```sh
-./build.sh
+./build.sh          # 生成小包，不联网
+./build.sh --full   # 从官方固定地址下载程序，生成完整离线包
 ```
 
-脚本从 Tailscale 官方下载 `tailscale_1.80.3_arm.tgz`，替换 `tailscale/bin/` 下的两个程序，生成 `tailscale.tar.gz`，并更新 `version`、`config.json.js`。下载或打包失败时不会覆盖原文件。
+所有产物只写入被 Git 忽略的 `dist/`。不再提交 `tailscale/bin/`、根目录 `tailscale.tar.gz`、`version` 或 `config.json.js`。即使本机仍缓存着旧的 `tailscale/bin/`，小包也会明确排除它。
 
-若电脑暂时无法访问下载服务器，但已有本项目的 1.80.3 二进制，可显式离线重新打包：
+## 自动发布 Release
+
+`.github/workflows/release.yml` 在 PR 上运行检查并上传小包作为 Actions artifact。推送版本标签时，检查通过后自动构建两个安装包、校验文件和元数据，发布到 GitHub Releases：
 
 ```sh
-./build.sh --offline
+git tag v1.80.3.1
+git push origin v1.80.3.1
 ```
 
-离线模式需要安装 Go，用 `go version -m` 核实两个程序的内嵌版本、工具链、系统和架构，避免给旧二进制贴上新版本号；不重新编译程序。有 Go 的在线构建也执行相同检查。
+标签必须与 `tailscale/version` 一致。后续修改插件时，先递增插件版本再创建新标签，不必改变客户端版本。也可在 Actions 手动运行工作流，填写已经存在的同名标签；不应重复发布已经发布的版本。工作流使用内置 `GITHUB_TOKEN`，不需要配置个人访问令牌。Fork 若未启用 Actions，需要先在 Actions 页面启用。
 
-两个二进制合计约 47MB，安装前检查 `/jffs` 可用空间。构建时若找到 `llvm-strip`，会尝试去掉调试信息；也可用 `STRIP=/path/to/strip ./build.sh` 指定工具。实际节省量取决于上游构建。
+## 已经提交过大文件怎么办
 
-安装后可在路由器 SSH 中确认：
+`.gitignore` 只影响之后的文件跟踪，无法移除旧提交里已经存在的对象。如果本地尚未推送的提交含有约 73MiB 的新二进制和安装包，继续推送那个分支仍会上传它们。
+
+本改动放在基于远端原始提交创建的新分支，避免新提交携带这些大对象。先把旧分支保留作备份，确认没有未提交改动，再切到新分支；不要把带大文件的旧本地提交合并回新分支。远端已存在的旧版本历史不重写。
 
 ```sh
-/koolshare/bin/tailscale version
-df -h /jffs
+git status --short
+git branch backup/before-small-installer
+git fetch origin
+git switch -c small-installer origin/codex/install-time-download
 ```
 
+也可直接在 GitHub 合并该分支的 PR，再从更新后的 `origin/main` 开始后续工作。无需再次上传这些新大文件。
 
-[下载本仓库安装包](https://github.com/gofunbox/merlin_tailscale_arm384/raw/refs/heads/main/tailscale.tar.gz)（需先将成功构建的安装包同步到仓库；本地修改不会自动更新线上下载）
+## 检查
+
+```sh
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+node tests/test_auth_ui.js
+```
+
+检查使用下载和 LocalAPI 测试替身，不访问真实账号，也不等于 AC68U 实机测试。
