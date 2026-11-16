@@ -1,5 +1,12 @@
-Koolshare Asuswrt-Merlin ZeroTier Changelog for HND/AXHND platform
+Koolshare Asuswrt-Merlin Tailscale Changelog for ARM 384/386
 ===========================================
+1.9.3
+   - update	固定tailscale二进制为v1.80.3（AC68U 旧内核兼容候选，待实机验证）
+   - update	build.sh 改为从官方下载固定版本，打包前写入版本号
+   - add	增加网页登录按钮、可复制的授权链接和自动刷新的登录状态
+   - fix	登录状态直接读取本地接口，显示实际健康提示；保留现有账号和网络设置
+   - add	支持校验二进制版本后离线重新打包，并同步安装包MD5
+
 1.9.2
    - update	更新tailscale二进制到最新v1.70.0版本！
 

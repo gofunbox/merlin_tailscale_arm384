@@ -134,6 +134,7 @@ install_now(){
 	# remove before install
 	rm -rf /koolshare/bin/tailscale* >/dev/null 2>&1
 	rm -rf /koolshare/res/icon-tailscale.png >/dev/null 2>&1
+	rm -f /koolshare/res/tailscale_auth.js >/dev/null 2>&1
 	rm -rf /koolshare/scripts/tailscale_* >/dev/null 2>&1
 	rm -rf /koolshare/scripts/uninstall_tailscale.sh >/dev/null 2>&1
 	rm -rf /koolshare/webs/Module_tailscale.asp >/dev/null 2>&1
